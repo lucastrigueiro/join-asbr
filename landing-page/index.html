@@ -256,18 +256,42 @@
                         dados.score = calcula_score();
                         dados.token = "90a5ce4cb7060796a8c862dd28269b80";
 
+
                         //Envia via POST para o endpoint
                         $.ajax({
                             type: 'POST',
                             url: 'http://api.actualsales.com.br/join-asbr/ti/lead',
-                            data: { 'nome' : dados.nome,
-                                    'email' : dados.email,
-                                    'telefone' : dados.telefone,
-                                    'regiao' : dados.regiao,
-                                    'unidade' : dados.unidade,
-                                    'data_nascimento' : dados.data_nascimento,
-                                    'score' : dados.score,
-                                    'token' : dados.token
+                            data: { 'nome': dados.nome,
+                                    'email': dados.email,
+                                    'telefone': dados.telefone,
+                                    'regiao': dados.regiao,
+                                    'unidade': dados.unidade,
+                                    'data_nascimento': dados.data_nascimento,
+                                    'score': dados.score,
+                                    'token': dados.token
+                            },
+                            dataType: 'json',
+                            success: function (msg) 
+                            {   
+                                console.log('success ' + msg);
+                            },
+                            error: function(xhr, textStatus, error){
+                                console.log(error);
+                            }
+                        });
+
+
+                        //Envia via POST para um php que armazenará no banco de dados
+                        $.ajax({
+                            type: 'POST',
+                            url: 'php/inserir.php',
+                            data: { 'nome': dados.nome,
+                                    'email': dados.email,
+                                    'telefone': dados.telefone,
+                                    'regiao': dados.regiao,
+                                    'unidade': dados.unidade,
+                                    'data_nascimento': dados.data_nascimento,
+                                    'score': dados.score
                             },
                             dataType: 'json',
                             success: function (msg) 
@@ -283,7 +307,7 @@
 
                 })
 
-                //Busca os valores da unidade no banco de dados
+                //Busca os valores da unidade no em um php
                 $('#sel-regiao').change(function(){
                     //Se alguma região foi selecionada
                     if( $('#sel-regiao option:selected').text() != "Selecione a sua região" ) {                    

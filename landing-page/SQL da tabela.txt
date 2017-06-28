@@ -1,0 +1,14 @@
+
+--------SQL usado para criar a tabela no banco de dados-----------
+
+CREATE TABLE formulario (
+    ID int NOT NULL AUTO_INCREMENT,
+    nome varchar(255) NOT NULL,
+    email varchar(255),
+    telefone varchar(13),
+    regiao varchar(255),
+    unidade varchar(255),
+    data_nascimento varchar(10),
+    score int,
+    CONSTRAINT PK_formulario PRIMARY KEY (ID)
+);
