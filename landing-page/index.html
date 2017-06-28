@@ -7,6 +7,8 @@
         <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet">
         <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.10/jquery.mask.js"></script>
+
     </head>
     <body>
         <div class="container">
@@ -22,7 +24,7 @@
             <div class="row">
                 <div class="col-lg-6" id="form-container">
 
-                    <form id="step_1" class="form-step">
+                    <form id="step_1" class="form-step" action"">
                         <div class="panel panel-info">
                             <div class="panel-heading">
                                 <div class="panel-title">
@@ -30,6 +32,9 @@
                                 </div>
                             </div>
                             <div class="panel-body">
+
+                                <div id="informacao1" style="color:red;"></div>
+
                                 <fieldset>
                                     <div class="row form-group">
                                         <div class="col-lg-6">
@@ -56,8 +61,9 @@
                                     </div>
 
                                     <div>
-                                        <button type="submit" class="btn btn-lg btn-info next-step">Próximo Passo</button>
+                                        <button type="submit" class="btn btn-lg btn-info next-step-1">Próximo Passo</button>
                                     </div>
+
                                 </fieldset>
                             </div>
                         </div>
@@ -71,11 +77,14 @@
                                 </div>
                             </div>
                             <div class="panel-body">
+
+                                <div id="informacao2" style="color:red;"></div>
+
                                 <fieldset>
                                     <div class="row form-group">
                                         <div class="col-lg-6">
                                             <label>Região</label>
-                                            <select class="form-control" name="regiao">
+                                            <select class="form-control" name="regiao" id="sel-regiao">
                                                 <option value="">Selecione a sua região</option>
                                                 <option>Sul</option>
                                                 <option>Sudeste</option>
@@ -87,15 +96,14 @@
 
                                         <div class="col-lg-6">
                                             <label>Unidade</label>
-                                            <select class="form-control" name="unidade">
+                                            <select class="form-control" name="unidade" id="sel-unidade">
                                                 <option value="">Selecione a unidade mais próxima</option>
-                                                <option>???</option>
                                             </select>
                                         </div>
                                     </div>
 
                                     <div>
-                                        <button type="submit" class="btn btn-lg btn-info next-step">Enviar</button>
+                                        <button type="submit" class="btn btn-lg btn-info next-step-2">Enviar</button>
                                     </div>
                                 </fieldset>
                             </div>
@@ -121,13 +129,105 @@
                 </div>
             </div>
         </div>
+
         <script>
+
+            //Verifica a validação dos campos
+            function valida_nome(valor) {
+                //Minimo duas palavras, com somente letras maiusculas, minusculas e acentuacoes
+                var regex = /^([a-zA-Z\u00C0-\u00FF])+\s+([a-zA-Z\u00C0-\u00FF\s])+$/;
+                return !regex.test(valor);
+            }
+            function valida_data(valor) {
+                if(valor=="")
+                    return true;
+                return false;
+            }
+            function valida_email(valor) {
+                var regex = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/;
+                return !regex.test(valor);
+            }
+            function valida_telefone(valor) {
+                if(valor=="")
+                    return true;
+                return false;
+            }
+
+            //Mascara para os campos data de nascimento e telefone
+            $(document).ready(function(){
+                  $("input[name='data_nascimento']").mask('00/00/0000',{clearIfNotMatch: true});
+                  $("input[name='telefone']").mask('(00)00000-0000',{clearIfNotMatch: true});
+            });
+
+            //Quando o botao enviar é acionado
             $(function () {
-                $('.next-step').click(function (event) {
+                //Formulario 1
+                $('.next-step-1').click(function (event) {
                     event.preventDefault();
-                    $(this).parents('.form-step').hide().next().show();
+
+                    //Verifica a validacao dos campos e dispara mensagens de erro
+                    if(valida_nome( $("input[name=nome]").val() ))
+                        document.getElementById("informacao1").innerHTML = "Informe nome e sobrenome";
+                    else if(valida_data( $("input[name=data_nascimento]").val() ))
+                        document.getElementById("informacao1").innerHTML = "Informe uma data de nascimento válida";
+                    else if(valida_email( $("input[name=email]").val() ))
+                        document.getElementById("informacao1").innerHTML = "Informe um email válido";
+                    else if(valida_telefone( $("input[name=telefone]").val() ))
+                        document.getElementById("informacao1").innerHTML = "Informe uma telefone válido";
+                    else{
+                        //Tudo ok, pode ir para o passo 2
+                        $(this).parents('.form-step').hide().next().show();
+                        //***Aqui deve processar os dados
+                    }
+                        
+                })
+
+                $('.next-step-2').click(function (event) {
+                    event.preventDefault();
+                    
+                    //Verifica se uma região foi selecionada
+                    if( $('#sel-regiao option:selected').text() == "Selecione a sua região" )
+                        document.getElementById("informacao2").innerHTML = "Selecione uma região e uma unidade";
+                    else{
+                        //Tudo ok, pode ir para o passo 2
+                        $(this).parents('.form-step').hide().next().show();
+                        //***Aqui deve processar os dados
+                    }
+
+                })
+
+                //Busca os valores da unidade no banco de dados
+                $('#sel-regiao').change(function(){
+                    //Se alguma região foi selecionada
+                    if( $('#sel-regiao option:selected').text() != "Selecione a sua região" ) {                    
+                        
+                        $.ajax({
+                            type: 'POST',
+                            url: 'php/unidade.php',
+                            data: { 'regiao': $('#sel-regiao option:selected').text() },
+                            dataType: 'json',
+                            success: function (msg) 
+                            {   
+                                var options = '';
+                                $(msg).each(function(i, item) {
+                                    options += '<option>' + item + '</option>'
+                                });
+                                document.getElementById("sel-unidade").innerHTML = options;
+                                console.log('success ' + msg);
+                            },
+                            error: function(xhr, textStatus, error){
+                                console.log(error);
+                            }
+                        });
+                    }
+                    else{
+                        //Se nenhuma região foi selecionada
+                        document.getElementById("sel-unidade").innerHTML = '<option>Selecione a unidade mais próxima</option>';
+                    }
                 });
+                    
             });
         </script>
+        
     </body>
 </html>
