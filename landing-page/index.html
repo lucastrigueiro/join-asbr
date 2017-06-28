@@ -131,6 +131,8 @@
         </div>
 
         <script>
+            //Array com os dados que serão enviados
+            var dados = {};
 
             //Verifica a validação dos campos
             function valida_nome(valor) {
@@ -139,9 +141,8 @@
                 return !regex.test(valor);
             }
             function valida_data(valor) {
-                if(valor=="")
-                    return true;
-                return false;
+                var regex = /^(?:(?:31(\/)(?:0?[13578]|1[02]))\1|(?:(?:29|30)(\/)(?:0?[1,3-9]|1[0-2])\2))(?:(?:1[6-9]|[2-9]\d)?\d{2})$|^(?:29(\/)0?2\3(?:(?:(?:1[6-9]|[2-9]\d)?(?:0[48]|[2468][048]|[13579][26])|(?:(?:16|[2468][048]|[3579][26])00))))$|^(?:0?[1-9]|1\d|2[0-8])(\/)(?:(?:0?[1-9])|(?:1[0-2]))\4([0-9]{4})$/;
+                return !regex.test(valor);
             }
             function valida_email(valor) {
                 var regex = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/;
@@ -153,10 +154,54 @@
                 return false;
             }
 
+            function calcula_score() {
+                var score = 10;
+                switch (dados.regiao) {
+                    case 'Sul':
+                        score -= 2;
+                        break;
+                    case 'Sudeste':
+                        if(dados.unidade != "São Paulo")
+                            score -= 1;
+                        break;
+                    case 'Centro-Oeste':
+                        score -= 3;
+                        break;
+                    case 'Nordeste':
+                        score -= 4;
+                        break;
+                    case 'Norte':
+                        score -= 5;
+                        break;
+                }
+
+                //milliseconds de diferença entre hoje e a data de nascimento
+                var diferenca = new Date("2016/11/01").getTime() - new Date(""+dados.data_nascimento).getTime();
+                //18 anos = 567993600000 milliseconds 
+                //40 anos = 1262304000000 milliseconds 
+                //100 anos = 3155673600000 milliseconds 
+
+                //Idade maior ou igual a 18 anos e menor que 40 anos
+                if( (diferenca >= 567993600000) && (diferenca < 1262304000000)){
+                    //Não modifca
+                }
+                //Idade maior ou igual a 40 anos e menor que 100 anos
+                else if( (diferenca >= 1262304000000) && (diferenca < 3155673600000)){
+                    score -= 3;
+                }
+                //Idade maior ou igual a 100 anos ou menor que 18 anos
+                else{
+                    score -= 5;
+                }                
+
+                return score;
+            }
+
+
             //Mascara para os campos data de nascimento e telefone
             $(document).ready(function(){
                   $("input[name='data_nascimento']").mask('00/00/0000',{clearIfNotMatch: true});
-                  $("input[name='telefone']").mask('(00)00000-0000',{clearIfNotMatch: true});
+                  $("input[name='telefone']").mask('(00)0000-0000',{clearIfNotMatch: true});
             });
 
             //Quando o botao enviar é acionado
@@ -177,7 +222,17 @@
                     else{
                         //Tudo ok, pode ir para o passo 2
                         $(this).parents('.form-step').hide().next().show();
-                        //***Aqui deve processar os dados
+                        //Adiciona os dados no objeto
+                        dados.nome = $("input[name=nome]").val();
+                        dados.email = $("input[name=email]").val();
+                        dados.telefone = $("input[name=telefone]").val();
+
+                        //Formata a data e insere no objeto
+                        var array = new Array();
+                        //Separa os valores e insere no array
+                        array = $("input[name=data_nascimento]").val().split('/');
+                        //Recria a data e insere no objeto seguindo o modelo: "YYYY/MM/DD"
+                        dados.data_nascimento = (array[2] + "/" + array[1] + "/" + array[0]);
                     }
                         
                 })
@@ -189,9 +244,41 @@
                     if( $('#sel-regiao option:selected').text() == "Selecione a sua região" )
                         document.getElementById("informacao2").innerHTML = "Selecione uma região e uma unidade";
                     else{
-                        //Tudo ok, pode ir para o passo 2
+                        //Tudo ok, pode ir para o proximo passo
                         $(this).parents('.form-step').hide().next().show();
-                        //***Aqui deve processar os dados
+                        
+                        //Adiciona os dados no objeto
+                        dados.regiao = $('#sel-regiao option:selected').text();
+                        //Se o texto for "Não possui disponibilidade", substitui por "INDISPONÍVEL"
+                        dados.unidade = ($('#sel-unidade option:selected').text() == "Não possui disponibilidade")? "INDISPONÍVEL" : $('#sel-unidade option:selected').text() ;
+
+                        //Calcula o score
+                        dados.score = calcula_score();
+                        dados.token = "90a5ce4cb7060796a8c862dd28269b80";
+
+                        //Envia via POST para o endpoint
+                        $.ajax({
+                            type: 'POST',
+                            url: 'http://api.actualsales.com.br/join-asbr/ti/lead',
+                            data: { 'nome' : dados.nome,
+                                    'email' : dados.email,
+                                    'telefone' : dados.telefone,
+                                    'regiao' : dados.regiao,
+                                    'unidade' : dados.unidade,
+                                    'data_nascimento' : dados.data_nascimento,
+                                    'score' : dados.score,
+                                    'token' : dados.token
+                            },
+                            dataType: 'json',
+                            success: function (msg) 
+                            {   
+                                console.log('success ' + msg);
+                            },
+                            error: function(xhr, textStatus, error){
+                                console.log(error);
+                            }
+                        });
+
                     }
 
                 })
